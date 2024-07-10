@@ -23,6 +23,8 @@ export function createElement(
     if (typeof type === "function") {
       return type()()
     }
+    componentIndex += 1
+    hookIndex = 0
     const element = new VElement(type, props ?? {}, [])
     for (const child of children) {
       if (typeof child === "function") {
@@ -122,12 +124,12 @@ function diffAndPatch(
   oldVNode: VNode
 ) {
   // remove
-  if (!newVNode) {
+  if (newVNode == undefined) {
     parent.removeChild(element)
     return
   }
   // add
-  if (!oldVNode) {
+  if (oldVNode == undefined) {
     parent.appendChild(createNode(newVNode))
     return
   }
@@ -150,6 +152,7 @@ function diffAndPatch(
     console.log("critical error", element)
   }
   updateElement(element as HTMLElement, newVNode.props, oldVNode.props)
+  componentIndex += 1
 
   // recursively diff children
   const maxLength = Math.max(oldVNode.children.length, newVNode.children.length)
@@ -164,15 +167,24 @@ function diffAndPatch(
   }
 }
 
-let val: any = undefined
+let vals: any[][] = []
+let componentIndex = 0
+let hookIndex = 0
 export function useState<T>(initial: T) {
-  if (val === undefined) {
-    val = initial
+  if (vals[componentIndex] == undefined) {
+    vals[componentIndex] = []
+  }
+  const hooks = vals[componentIndex]
+  const currentHookIndex = hookIndex
+  hookIndex += 1
+  console.log(vals, componentIndex, currentHookIndex)
+  if (hooks[currentHookIndex] === undefined) {
+    hooks[currentHookIndex] = initial
   }
   return [
-    val,
+    hooks[currentHookIndex],
     (newVal: T) => {
-      val = newVal
+      hooks[currentHookIndex] = newVal
       rerender()
     },
   ]
@@ -183,7 +195,9 @@ let rootBuilder: () => VElement
 let rootElement: HTMLElement
 
 function rerender() {
+  componentIndex = 0
   const newRoot = rootBuilder()
+  componentIndex = 0
   diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot)
   oldRoot = newRoot
 }
@@ -195,7 +209,9 @@ export function createRoot(element: HTMLElement): {
   return {
     render: (builder) => {
       rootBuilder = builder
+      componentIndex = 0
       const newRoot = rootBuilder()
+      componentIndex = 0
       diffAndPatch(element, element.childNodes[0], newRoot, oldRoot)
       oldRoot = newRoot
     },

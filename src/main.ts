@@ -31,10 +31,20 @@ const Counter = () => {
 }
 
 const App = () => {
+  const [text, setText] = React.useState("")
+
   return React.createElement(
     "div",
     {id: 1},
+    React.createElement("input", {
+      id: 0,
+      value: text,
+      onInput: (e: any) => {
+        setText(e.target.value)
+      },
+    }),
     React.createElement("p", {id: 2}, "My Counter App"),
+    text.length > 0 ? React.createElement(Counter) : "",
     React.createElement(Counter)
   )
 }
