@@ -41,9 +41,6 @@ function editProp(
   key: string,
   value: any
 ) {
-  if (value == undefined) {
-    return
-  }
   // handle event listeners
   if (key.startsWith("on") && typeof value === "function") {
     const eventName = key.toLowerCase().substring(2)
@@ -73,6 +70,27 @@ function editProp(
   }
 }
 
+// mutate element inplace
+function updateElement(
+  element: HTMLElement,
+  newProps: {[key: string]: any},
+  oldProps: {[key: string]: any}
+) {
+  // add and update props
+  Object.entries(newProps).forEach(([key, value]) => {
+    if (oldProps[key] !== value) {
+      editProp("remove", element, key, oldProps[key])
+      editProp("add", element, key, value)
+    }
+  })
+  // remove props
+  Object.keys(oldProps).forEach((key) => {
+    if (newProps[key] == undefined) {
+      editProp("remove", element, key, oldProps[key])
+    }
+  })
+}
+
 function createNode(vnode: VNode) {
   // base case of text and numbers
   if (!(vnode instanceof VElement)) {
@@ -97,28 +115,90 @@ function createNode(vnode: VNode) {
   return element
 }
 
-function diffAndRender(
-  parent: HTMLElement,
+function diffAndPatch(
+  parent: ChildNode,
+  element: ChildNode,
   newVNode: VNode,
-  oldVNode: VNode,
-  index = 0
+  oldVNode: VNode
 ) {
-  parent.appendChild(createNode(newVNode))
+  // remove
+  if (!newVNode) {
+    parent.removeChild(element)
+    return
+  }
+  // add
+  if (!oldVNode) {
+    parent.appendChild(createNode(newVNode))
+    return
+  }
+  // swap
+  if (typeof oldVNode != typeof newVNode) {
+    parent.replaceChild(createNode(newVNode), element)
+    return
+  }
+  if (typeof oldVNode == "string" || typeof oldVNode == "number") {
+    if (oldVNode !== newVNode) {
+      parent.replaceChild(createNode(newVNode), element)
+    }
+    return
+  }
+  // update
+  // recursively diff children
+  newVNode = newVNode as VElement
+  const maxLength = Math.max(oldVNode.children.length, newVNode.children.length)
+  const childNodes = [...element.childNodes]
+  for (let i = 0; i < maxLength; i++) {
+    diffAndPatch(
+      element,
+      childNodes[i],
+      newVNode.children[i],
+      oldVNode.children[i]
+    )
+  }
+  // compare vitual dom elements and render if props are different
+  updateElement(element as HTMLElement, newVNode.props, oldVNode.props)
+
+  if (element.nodeType !== Node.ELEMENT_NODE) {
+    console.log("critical error", element)
+  }
 }
 
-export function createRoot(rootElement: HTMLElement): {
+let val: any = undefined
+export function useState<T>(initial: T) {
+  if (val === undefined) {
+    val = initial
+  }
+  return [
+    val,
+    (newVal: T) => {
+      val = newVal
+      rerender()
+    },
+  ]
+}
+
+let oldRoot: VElement
+let rootBuilder: () => VElement
+let rootElement: HTMLElement
+
+function rerender() {
+  const newRoot = rootBuilder()
+  diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot)
+  oldRoot = newRoot
+}
+
+export function createRoot(element: HTMLElement): {
   render: (builder: () => VElement) => void
 } {
-  let oldRoot: VElement
-  let rootBuilder: () => VElement
+  rootElement = element
   return {
     render: (builder) => {
       rootBuilder = builder
       const newRoot = rootBuilder()
-      diffAndRender(rootElement, newRoot, oldRoot)
+      diffAndPatch(element, element.childNodes[0], newRoot, oldRoot)
       oldRoot = newRoot
     },
   }
 }
 
-export default {createElement, createRoot}
+export default {createElement, createRoot, useState}

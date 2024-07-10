@@ -1,12 +1,30 @@
 import React from "./react"
 
 const Counter = () => {
+  const [count, setCount] = React.useState(0)
+
   return React.createElement(
     "div",
     null,
-    React.createElement("p", null, "Counter: " + 0),
-    React.createElement("button", {}, "-"),
-    React.createElement("button", {}, "+")
+    React.createElement("p", null, "Counter: " + count),
+    React.createElement(
+      "button",
+      {
+        onClick: () => {
+          setCount(count - 1)
+        },
+      },
+      "-"
+    ),
+    React.createElement(
+      "button",
+      {
+        onClick: () => {
+          setCount(count + 1)
+        },
+      },
+      "+"
+    )
   )
 }
 
