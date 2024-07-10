@@ -23,15 +23,15 @@ export function createElement(
     if (typeof type === "function") {
       return type()()
     }
-    const childNodes: VNode[] = []
+    const element = new VElement(type, props ?? {}, [])
     for (const child of children) {
       if (typeof child === "function") {
-        childNodes.push(child())
+        element.children.push(child())
       } else {
-        childNodes.push(child)
+        element.children.push(child)
       }
     }
-    return new VElement(type, props ?? {}, childNodes)
+    return element
   }
 }
 
@@ -142,9 +142,16 @@ function diffAndPatch(
     }
     return
   }
+
   // update
-  // recursively diff children
+  // compare vitual dom elements and render if props are different
   newVNode = newVNode as VElement
+  if (element.nodeType !== Node.ELEMENT_NODE) {
+    console.log("critical error", element)
+  }
+  updateElement(element as HTMLElement, newVNode.props, oldVNode.props)
+
+  // recursively diff children
   const maxLength = Math.max(oldVNode.children.length, newVNode.children.length)
   const childNodes = [...element.childNodes]
   for (let i = 0; i < maxLength; i++) {
@@ -154,12 +161,6 @@ function diffAndPatch(
       newVNode.children[i],
       oldVNode.children[i]
     )
-  }
-  // compare vitual dom elements and render if props are different
-  updateElement(element as HTMLElement, newVNode.props, oldVNode.props)
-
-  if (element.nodeType !== Node.ELEMENT_NODE) {
-    console.log("critical error", element)
   }
 }
 

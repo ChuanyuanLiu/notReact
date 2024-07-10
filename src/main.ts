@@ -5,11 +5,12 @@ const Counter = () => {
 
   return React.createElement(
     "div",
-    null,
-    React.createElement("p", null, "Counter: " + count),
+    {id: 3},
+    React.createElement("p", {id: 4}, "Counter: " + count),
     React.createElement(
       "button",
       {
+        id: 5,
         onClick: () => {
           setCount(count - 1)
         },
@@ -19,6 +20,7 @@ const Counter = () => {
     React.createElement(
       "button",
       {
+        id: 6,
         onClick: () => {
           setCount(count + 1)
         },
@@ -31,8 +33,8 @@ const Counter = () => {
 const App = () => {
   return React.createElement(
     "div",
-    null,
-    React.createElement("p", null, "My Counter App"),
+    {id: 1},
+    React.createElement("p", {id: 2}, "My Counter App"),
     React.createElement(Counter)
   )
 }
