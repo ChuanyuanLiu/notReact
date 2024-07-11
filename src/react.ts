@@ -1,5 +1,8 @@
 // the power of react, calculate diff and update only the necessary parts of the DOM
-// Virtual DOM
+import {genIDOnCallLocation} from "./utils"
+
+////////////////////////////////////////////////////////////////////////////
+////////////////////// Virtual DOM
 type VNode = VElement | string | number
 
 class VElement {
@@ -19,12 +22,18 @@ export function createElement(
   props: {[key: string]: any} | null = null,
   ...children: ((() => VElement) | string | number)[]
 ): () => VElement {
+  // get the id for the component
+  let id = ""
+  if (typeof type === "function") {
+    id = genIDOnCallLocation(4)
+  }
+
   return () => {
     if (typeof type === "function") {
+      componentIndex = id
+      hookIndex = 0
       return type()()
     }
-    componentIndex += 1
-    hookIndex = 0
     const element = new VElement(type, props ?? {}, [])
     for (const child of children) {
       if (typeof child === "function") {
@@ -36,6 +45,9 @@ export function createElement(
     return element
   }
 }
+
+////////////////////////////////////////////////////////////////////////////
+////////////////////// Rendering
 
 function editProp(
   operation: "add" | "remove",
@@ -149,10 +161,9 @@ function diffAndPatch(
   // compare vitual dom elements and render if props are different
   newVNode = newVNode as VElement
   if (element.nodeType !== Node.ELEMENT_NODE) {
-    console.log("critical error", element)
+    console.error("critical error", element)
   }
   updateElement(element as HTMLElement, newVNode.props, oldVNode.props)
-  componentIndex += 1
 
   // recursively diff children
   const maxLength = Math.max(oldVNode.children.length, newVNode.children.length)
@@ -167,17 +178,40 @@ function diffAndPatch(
   }
 }
 
-let vals: any[][] = []
-let componentIndex = 0
+function rerender() {
+  const newRoot = rootBuilder()
+  diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot)
+  oldRoot = newRoot
+}
+
+// Only support a single instance of root
+export function createRoot(element: HTMLElement): {
+  render: (builder: () => VElement) => void
+} {
+  rootElement = element
+  return {
+    render: (builder) => {
+      rootBuilder = builder
+      const newRoot = rootBuilder()
+      diffAndPatch(element, element.childNodes[0], newRoot, oldRoot)
+      oldRoot = newRoot
+    },
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////
+////////////////////// Hooks
+
+let vals = new Map<string, any[]>()
+let componentIndex = ""
 let hookIndex = 0
 export function useState<T>(initial: T) {
-  if (vals[componentIndex] == undefined) {
-    vals[componentIndex] = []
+  if (vals.get(componentIndex) == undefined) {
+    vals.set(componentIndex, [])
   }
-  const hooks = vals[componentIndex]
+  const hooks = vals.get(componentIndex)!
   const currentHookIndex = hookIndex
   hookIndex += 1
-  console.log(vals, componentIndex, currentHookIndex)
   if (hooks[currentHookIndex] === undefined) {
     hooks[currentHookIndex] = initial
   }
@@ -193,29 +227,5 @@ export function useState<T>(initial: T) {
 let oldRoot: VElement
 let rootBuilder: () => VElement
 let rootElement: HTMLElement
-
-function rerender() {
-  componentIndex = 0
-  const newRoot = rootBuilder()
-  componentIndex = 0
-  diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot)
-  oldRoot = newRoot
-}
-
-export function createRoot(element: HTMLElement): {
-  render: (builder: () => VElement) => void
-} {
-  rootElement = element
-  return {
-    render: (builder) => {
-      rootBuilder = builder
-      componentIndex = 0
-      const newRoot = rootBuilder()
-      componentIndex = 0
-      diffAndPatch(element, element.childNodes[0], newRoot, oldRoot)
-      oldRoot = newRoot
-    },
-  }
-}
 
 export default {createElement, createRoot, useState}

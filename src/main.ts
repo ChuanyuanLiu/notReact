@@ -5,12 +5,11 @@ const Counter = () => {
 
   return React.createElement(
     "div",
-    {id: 3},
-    React.createElement("p", {id: 4}, "Counter: " + count),
+    null,
+    React.createElement("p", null, "Counter: " + count),
     React.createElement(
       "button",
       {
-        id: 5,
         onClick: () => {
           setCount(count - 1)
         },
@@ -20,7 +19,6 @@ const Counter = () => {
     React.createElement(
       "button",
       {
-        id: 6,
         onClick: () => {
           setCount(count + 1)
         },
@@ -35,7 +33,7 @@ const App = () => {
 
   return React.createElement(
     "div",
-    {id: 1},
+    null,
     React.createElement("input", {
       id: 0,
       value: text,
@@ -43,7 +41,7 @@ const App = () => {
         setText(e.target.value)
       },
     }),
-    React.createElement("p", {id: 2}, "My Counter App"),
+    React.createElement("p", null, "My Counter App"),
     text.length > 0 ? React.createElement(Counter) : "",
     React.createElement(Counter)
   )
