@@ -1,16 +1,17 @@
 {
   "name": "not-react",
   "private": false,
-  "version": "0.1.3",
+  "version": "0.2.1",
   "umd": "./dist/react.js",
   "files": [
     "dist"
   ],
+  "types": "./dist/react.d.ts",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "rollup -c",
-    "publish": "npm publish"
+    "publish": "npm run build && npm publish"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",

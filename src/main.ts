@@ -1,14 +1,14 @@
-import react from "../lib/react"
+import React from "../lib/react"
 
-const Counter = ({x}: {x: number}) => {
-  const [count, setCount] = react.useState(x)
+const Counter = (props: {x: number}) => {
+  const [count, setCount] = React.useState(props.x)
 
-  return react.createElement(
+  return React.createElement(
     "div",
     null,
-    x,
-    react.createElement("p", null, "Counter: " + count),
-    react.createElement(
+    props.x,
+    React.createElement("p", null, "Counter: " + count),
+    React.createElement(
       "button",
       {
         onClick: () => {
@@ -17,7 +17,7 @@ const Counter = ({x}: {x: number}) => {
       },
       "-"
     ),
-    react.createElement(
+    React.createElement(
       "button",
       {
         onClick: () => {
@@ -30,24 +30,12 @@ const Counter = ({x}: {x: number}) => {
 }
 
 const App = () => {
-  const [text, setText] = react.useState("")
-
-  return react.createElement(
-    "div",
-    null,
-    react.createElement("input", {
-      id: 0,
-      value: text,
-      onInput: (e: any) => {
-        setText(e.target.value)
-      },
-    }),
-    Array.from(Array(text.length).keys()).map((x) =>
-      react.createElement(Counter, {x: x})
-    )
-  )
+  return React.createElement("div", null, [
+    React.createElement(Counter, {x: 1}),
+    React.createElement(Counter, {x: 1}),
+  ])
 }
 
-react
-  .createRoot(document.getElementById("app")!)
-  .render(react.createElement(App))
+React.createRoot(document.getElementById("app")!).render(
+  React.createElement(App, null)
+)

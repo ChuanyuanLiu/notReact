@@ -33,22 +33,37 @@ var React = (function (exports) {
             this.children = children;
         }
     }
-    function createElement(type, props = null, ...children) {
-        // get the id for the component
-        let id = "";
+    function createElement(type, props, ...children) {
+        // get the key for the component
+        let Index = "";
         if (typeof type === "function") {
-            id = genIDOnCallLocation(4);
+            Index = genIDOnCallLocation(4);
         }
-        return () => {
+        return (defaultKey) => {
             if (typeof type === "function") {
-                componentIndex = id;
+                // use default key if not provided
+                componentIndex =
+                    Index + ((props === null || props === void 0 ? void 0 : props.key) != undefined ? props === null || props === void 0 ? void 0 : props.key : defaultKey);
                 hookIndex = 0;
-                return type()();
+                return type(props)(defaultKey);
             }
             const element = new VElement(type, props !== null && props !== void 0 ? props : {}, []);
             for (const child of children) {
                 if (typeof child === "function") {
-                    element.children.push(child());
+                    element.children.push(child(defaultKey));
+                    // Handle an array as children
+                }
+                else if (Array.isArray(child)) {
+                    let i = 0;
+                    for (const c of child) {
+                        if (typeof c === "function") {
+                            element.children.push(c(i.toString()));
+                        }
+                        else {
+                            element.children.push(c);
+                        }
+                        i += 1;
+                    }
                 }
                 else {
                     element.children.push(child);
@@ -92,18 +107,22 @@ var React = (function (exports) {
     // mutate element inplace
     function updateElement(element, newProps, oldProps) {
         // add and update props
-        Object.entries(newProps).forEach(([key, value]) => {
-            if (oldProps[key] !== value) {
-                editProp("remove", element, key, oldProps[key]);
-                editProp("add", element, key, value);
-            }
-        });
+        if (!(newProps == null)) {
+            Object.entries(newProps).forEach(([key, value]) => {
+                if (oldProps && oldProps[key] !== value) {
+                    editProp("remove", element, key, oldProps[key]);
+                    editProp("add", element, key, value);
+                }
+            });
+        }
         // remove props
-        Object.keys(oldProps).forEach((key) => {
-            if (newProps[key] == undefined) {
-                editProp("remove", element, key, oldProps[key]);
-            }
-        });
+        if (!(oldProps == null)) {
+            Object.keys(oldProps).forEach((key) => {
+                if (newProps && newProps[key] == undefined) {
+                    editProp("remove", element, key, oldProps[key]);
+                }
+            });
+        }
     }
     function createNode(vnode) {
         // base case of text and numbers
@@ -120,6 +139,10 @@ var React = (function (exports) {
         }
         // render children
         children.forEach((child) => {
+            // extra type check if user forces an undefined child
+            if (child == undefined) {
+                return;
+            }
             element.appendChild(createNode(child));
         });
         return element;
@@ -161,7 +184,7 @@ var React = (function (exports) {
         }
     }
     function rerender() {
-        const newRoot = rootBuilder();
+        const newRoot = rootBuilder(genIDOnCallLocation(4));
         diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot);
         oldRoot = newRoot;
     }
@@ -171,7 +194,7 @@ var React = (function (exports) {
         return {
             render: (builder) => {
                 rootBuilder = builder;
-                const newRoot = rootBuilder();
+                const newRoot = rootBuilder(genIDOnCallLocation(4));
                 diffAndPatch(element, element.childNodes[0], newRoot, oldRoot);
                 oldRoot = newRoot;
             },
