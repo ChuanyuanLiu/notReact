@@ -1,4 +1,4 @@
-var react = (function (exports) {
+var React = (function (exports) {
     'use strict';
 
     function genIDOnCallLocation(depth = 4) {

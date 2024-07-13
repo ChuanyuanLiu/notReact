@@ -4,11 +4,11 @@ import dts from 'rollup-plugin-dts';
 
 export default [
     {
-        input: 'src/react.ts',
+        input: 'lib/react.ts',
         output: {
             file: 'dist/react.js',
             format: 'iife',
-            name: 'react'
+            name: 'React'
         },
         plugins: [
             nodeResolve(),
@@ -16,7 +16,7 @@ export default [
         ]
     },
     {
-        input: 'src/react.ts',
+        input: 'lib/react.ts',
         output: {
             file: 'dist/react.d.ts',
             format: 'es'
