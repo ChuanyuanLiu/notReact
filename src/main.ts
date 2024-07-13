@@ -1,11 +1,12 @@
 import react from "../lib/react"
 
-const Counter = () => {
-  const [count, setCount] = react.useState(0)
+const Counter = ({x}: {x: number}) => {
+  const [count, setCount] = react.useState(x)
 
   return react.createElement(
     "div",
     null,
+    x,
     react.createElement("p", null, "Counter: " + count),
     react.createElement(
       "button",
@@ -41,9 +42,9 @@ const App = () => {
         setText(e.target.value)
       },
     }),
-    react.createElement("p", null, "My Counter App"),
-    text.length > 0 ? react.createElement(Counter) : "",
-    react.createElement(Counter)
+    Array.from(Array(text.length).keys()).map((x) =>
+      react.createElement(Counter, {x: x})
+    )
   )
 }
 

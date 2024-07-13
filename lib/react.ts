@@ -7,37 +7,53 @@ type VNode = VElement | string | number
 
 class VElement {
   tag: string
-  props: {[key: string]: any}
+  props: propType
   children: VNode[]
 
-  constructor(tag: string, props: {[key: string]: any}, children: VNode[]) {
+  constructor(tag: string, props: propType, children: VNode[]) {
     this.tag = tag
     this.props = props
     this.children = children
   }
 }
 
+type propType = {[key: string]: any} | null
+
 export function createElement(
-  type: string | (() => () => VElement),
-  props: {[key: string]: any} | null = null,
-  ...children: ((() => VElement) | string | number)[]
+  type: string | ((props: propType) => () => VElement),
+  props: propType = null,
+  ...children: (
+    | (() => VElement)
+    | string
+    | number
+    | (string | number | (() => VElement))[]
+  )[]
 ): () => VElement {
   // get the id for the component
   let id = ""
   if (typeof type === "function") {
-    id = genIDOnCallLocation(4)
+    id = genIDOnCallLocation(4) + (props?.id ?? "")
   }
 
   return () => {
     if (typeof type === "function") {
       componentIndex = id
       hookIndex = 0
-      return type()()
+      return type(props)()
     }
     const element = new VElement(type, props ?? {}, [])
     for (const child of children) {
       if (typeof child === "function") {
         element.children.push(child())
+        // Handle an array as children
+      } else if (Array.isArray(child)) {
+        for (const c of child) {
+          if (typeof c === "function") {
+            element.children.push(c())
+          } else {
+            element.children.push(c)
+          }
+        }
       } else {
         element.children.push(child)
       }
@@ -87,22 +103,26 @@ function editProp(
 // mutate element inplace
 function updateElement(
   element: HTMLElement,
-  newProps: {[key: string]: any},
-  oldProps: {[key: string]: any}
+  newProps: propType,
+  oldProps: propType
 ) {
   // add and update props
-  Object.entries(newProps).forEach(([key, value]) => {
-    if (oldProps[key] !== value) {
-      editProp("remove", element, key, oldProps[key])
-      editProp("add", element, key, value)
-    }
-  })
+  if (!(newProps == null)) {
+    Object.entries(newProps).forEach(([key, value]) => {
+      if (oldProps && oldProps[key] !== value) {
+        editProp("remove", element, key, oldProps[key])
+        editProp("add", element, key, value)
+      }
+    })
+  }
   // remove props
-  Object.keys(oldProps).forEach((key) => {
-    if (newProps[key] == undefined) {
-      editProp("remove", element, key, oldProps[key])
-    }
-  })
+  if (!(oldProps == null)) {
+    Object.keys(oldProps).forEach((key) => {
+      if (newProps && newProps[key] == undefined) {
+        editProp("remove", element, key, oldProps[key])
+      }
+    })
+  }
 }
 
 function createNode(vnode: VNode) {
