@@ -12,7 +12,7 @@ declare function createElement<T extends propType>(type: string | ((props: T) =>
 declare function createRoot(element: HTMLElement): {
     render: (builder: (defaultKey: string) => VElement) => void;
 };
-declare function useState<T>(initial: T): any[];
+declare function useState<T>(initial: T): [T, (newVal: T | ((oldVal: T) => T)) => void];
 declare const _default: {
     createElement: typeof createElement;
     createRoot: typeof createRoot;

@@ -202,6 +202,7 @@ var React = (function (exports) {
     }
     ////////////////////////////////////////////////////////////////////////////
     ////////////////////// Hooks
+    // TODO: improve type hints
     let vals = new Map();
     let componentIndex = "";
     let hookIndex = 0;
@@ -213,12 +214,22 @@ var React = (function (exports) {
         const currentHookIndex = hookIndex;
         hookIndex += 1;
         if (hooks[currentHookIndex] === undefined) {
-            hooks[currentHookIndex] = initial;
+            if (typeof initial == "function") {
+                hooks[currentHookIndex] = initial();
+            }
+            else {
+                hooks[currentHookIndex] = initial;
+            }
         }
         return [
             hooks[currentHookIndex],
             (newVal) => {
-                hooks[currentHookIndex] = newVal;
+                if (typeof newVal === "function") {
+                    hooks[currentHookIndex] = newVal(hooks[currentHookIndex]);
+                }
+                else {
+                    hooks[currentHookIndex] = newVal;
+                }
                 rerender();
             },
         ];
