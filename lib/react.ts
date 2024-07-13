@@ -229,11 +229,13 @@ export function createRoot(element: HTMLElement): {
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////// Hooks
-
+// TODO: improve type hints
 let vals = new Map<string, any[]>()
 let componentIndex = ""
 let hookIndex = 0
-export function useState<T>(initial: T) {
+export function useState<T>(
+  initial: T
+): [T, (newVal: T | ((oldVal: T) => T)) => void] {
   if (vals.get(componentIndex) == undefined) {
     vals.set(componentIndex, [])
   }
@@ -241,12 +243,22 @@ export function useState<T>(initial: T) {
   const currentHookIndex = hookIndex
   hookIndex += 1
   if (hooks[currentHookIndex] === undefined) {
-    hooks[currentHookIndex] = initial
+    if (typeof initial == "function") {
+      hooks[currentHookIndex] = initial()
+    } else {
+      hooks[currentHookIndex] = initial
+    }
   }
   return [
     hooks[currentHookIndex],
-    (newVal: T) => {
-      hooks[currentHookIndex] = newVal
+    (newVal) => {
+      if (typeof newVal === "function") {
+        hooks[currentHookIndex] = (newVal as (oldVal: T) => T)(
+          hooks[currentHookIndex]
+        )
+      } else {
+        hooks[currentHookIndex] = newVal
+      }
       rerender()
     },
   ]

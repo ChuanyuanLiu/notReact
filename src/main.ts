@@ -1,7 +1,7 @@
 import React from "../lib/react"
 
 const Counter = (props: {x: number}) => {
-  const [count, setCount] = React.useState(props.x)
+  const [count, setCount] = React.useState(1)
 
   return React.createElement(
     "div",
@@ -12,7 +12,7 @@ const Counter = (props: {x: number}) => {
       "button",
       {
         onClick: () => {
-          setCount(count - 1)
+          setCount((x) => x - 1)
         },
       },
       "-"
@@ -30,7 +30,7 @@ const Counter = (props: {x: number}) => {
 }
 
 const App = () => {
-  return React.createElement("div", null, [
+  return React.createElement("div", {className: "btn"}, [
     React.createElement(Counter, {x: 1}),
     React.createElement(Counter, {x: 1}),
   ])
