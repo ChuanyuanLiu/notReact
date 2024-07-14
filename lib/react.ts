@@ -102,8 +102,18 @@ function editProp(
   }
 
   // handle other attributes
+  // TODO: handle more cases
   if (operation === "add") {
-    element.setAttribute(key, value)
+    switch (key) {
+      case "value":
+        ;(element as HTMLInputElement).value = value
+        break
+      case "checked":
+        ;(element as HTMLInputElement).checked = value
+        break
+      default:
+        element.setAttribute(key, value)
+    }
   } else {
     element.removeAttribute(key)
   }
