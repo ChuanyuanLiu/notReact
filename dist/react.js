@@ -39,11 +39,16 @@ var React = (function (exports) {
         if (typeof type === "function") {
             Index = genIDOnCallLocation(4);
         }
-        return (defaultKey) => {
+        return (defaultKey = "") => {
             if (typeof type === "function") {
                 // use default key if not provided
-                componentIndex =
-                    Index + ((props === null || props === void 0 ? void 0 : props.key) != undefined ? props === null || props === void 0 ? void 0 : props.key : defaultKey);
+                componentIndex = Index;
+                if ((props === null || props === void 0 ? void 0 : props.key) != undefined) {
+                    componentIndex += `?key=${props === null || props === void 0 ? void 0 : props.key}`;
+                }
+                else if (defaultKey.length > 0) {
+                    componentIndex += `?key=${defaultKey}`;
+                }
                 hookIndex = 0;
                 return type(props)(defaultKey);
             }
@@ -184,7 +189,7 @@ var React = (function (exports) {
         }
     }
     function rerender() {
-        const newRoot = rootBuilder(genIDOnCallLocation(4));
+        const newRoot = rootBuilder();
         diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot);
         oldRoot = newRoot;
     }
@@ -194,7 +199,7 @@ var React = (function (exports) {
         return {
             render: (builder) => {
                 rootBuilder = builder;
-                const newRoot = rootBuilder(genIDOnCallLocation(4));
+                const newRoot = rootBuilder();
                 diffAndPatch(element, element.childNodes[0], newRoot, oldRoot);
                 oldRoot = newRoot;
             },
@@ -234,6 +239,8 @@ var React = (function (exports) {
             },
         ];
     }
+    ////////////////////////////////////////////////////////////////////////////
+    // Global variables
     let oldRoot;
     let rootBuilder;
     let rootElement;

@@ -8,9 +8,10 @@ declare class VElement {
 type propType = {
     [key: string]: any;
 } | null;
-declare function createElement<T extends propType>(type: string | ((props: T) => (tempKey: string) => VElement), props: T, ...children: (((tempKey: string) => VElement) | string | number | (string | number | ((tempKey: string) => VElement))[])[]): (tempKey: string) => VElement;
+type componentType = (React?: string) => VElement;
+declare function createElement<T extends propType>(type: string | ((props: T) => componentType), props: T, ...children: (componentType | string | number | (string | number | componentType)[])[]): (React?: string) => VElement;
 declare function createRoot(element: HTMLElement): {
-    render: (builder: (defaultKey: string) => VElement) => void;
+    render: (builder: componentType) => void;
 };
 declare function useState<T>(initial: T): [T, (newVal: T | ((oldVal: T) => T)) => void];
 declare const _default: {

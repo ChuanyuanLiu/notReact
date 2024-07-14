@@ -18,28 +18,33 @@ class VElement {
 }
 
 type propType = {[key: string]: any} | null
+type componentType = (React?: string) => VElement
 
 export function createElement<T extends propType>(
-  type: string | ((props: T) => (tempKey: string) => VElement),
+  type: string | ((props: T) => componentType),
   props: T,
   ...children: (
-    | ((tempKey: string) => VElement)
+    | componentType
     | string
     | number
-    | (string | number | ((tempKey: string) => VElement))[]
+    | (string | number | componentType)[]
   )[]
-): (tempKey: string) => VElement {
+): (React?: string) => VElement {
   // get the key for the component
   let Index = ""
   if (typeof type === "function") {
     Index = genIDOnCallLocation(4)
   }
 
-  return (defaultKey: string) => {
+  return (defaultKey: string = "") => {
     if (typeof type === "function") {
       // use default key if not provided
-      componentIndex =
-        Index + (props?.key != undefined ? props?.key : defaultKey)
+      componentIndex = Index
+      if (props?.key != undefined) {
+        componentIndex += `?key=${props?.key}`
+      } else if (defaultKey.length > 0) {
+        componentIndex += `?key=${defaultKey}`
+      }
       hookIndex = 0
       return type(props)(defaultKey)
     }
@@ -207,20 +212,20 @@ function diffAndPatch(
 }
 
 function rerender() {
-  const newRoot = rootBuilder(genIDOnCallLocation(4))
+  const newRoot = rootBuilder()
   diffAndPatch(rootElement, rootElement.childNodes[0], newRoot, oldRoot)
   oldRoot = newRoot
 }
 
 // Only support a single instance of root
 export function createRoot(element: HTMLElement): {
-  render: (builder: (defaultKey: string) => VElement) => void
+  render: (builder: componentType) => void
 } {
   rootElement = element
   return {
     render: (builder) => {
       rootBuilder = builder
-      const newRoot = rootBuilder(genIDOnCallLocation(4))
+      const newRoot = rootBuilder()
       diffAndPatch(element, element.childNodes[0], newRoot, oldRoot)
       oldRoot = newRoot
     },
@@ -264,8 +269,11 @@ export function useState<T>(
   ]
 }
 
+////////////////////////////////////////////////////////////////////////////
+// Global variables
+
 let oldRoot: VElement
-let rootBuilder: (defaultKey: string) => VElement
+let rootBuilder: componentType
 let rootElement: HTMLElement
 
 export default {createElement, createRoot, useState}
