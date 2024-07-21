@@ -1,4 +1,5 @@
 import {genIDOnCallLocation} from "./utils"
+import {unmount} from "./hooks"
 
 type VNode = VElement | string | number
 let oldRoot: VElement
@@ -98,8 +99,9 @@ function editProp(
   if (key.startsWith("on") && typeof value === "function") {
     let eventName = key.toLowerCase().substring(2)
     switch (eventName) {
-      case "input":
-        eventName = "change"
+      case "change":
+        eventName = "input"
+        break
     }
     if (operation === "add") {
       element.addEventListener(eventName, value)
@@ -198,6 +200,7 @@ function diffAndPatch(
 ) {
   // remove
   if (newVNode == undefined) {
+    unmount(componentIndex)
     parent.removeChild(element)
     return
   }
@@ -208,11 +211,13 @@ function diffAndPatch(
   }
   // swap
   if (typeof oldVNode != typeof newVNode) {
+    unmount(componentIndex)
     parent.replaceChild(createNode(newVNode), element)
     return
   }
   if (typeof oldVNode == "string" || typeof oldVNode == "number") {
     if (oldVNode !== newVNode) {
+      unmount(componentIndex)
       parent.replaceChild(createNode(newVNode), element)
     }
     return
