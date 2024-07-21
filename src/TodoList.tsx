@@ -3,20 +3,23 @@ import React, { useState, useEffect } from "../lib/react";
 const TodoItem = ({ todo, index, toggleTodo, removeTodo }) => {
   const [count, setCount] = useState(0);
   const [text, setText] = useState("");
+
   useEffect(() => {
-    console.log("TodoItem mounted", count);
+    console.log("Item mounted");
     return () => {
-      console.log("TodoItem unmounted", count);
+      console.log("Item unmounted");
     };
-  }, [count])
+  }, [])
 
   return (
     <li
       className="flex items-center justify-between bg-base-200 p-3 rounded-lg"
     >
       <div className="flex items-center">
-        <button className="btn" onclick={() => setCount(count + 1)}>
-          {count}
+        {count}
+        <button className="btn btn-primary"
+          onClick={() => setCount(count + 1)}>
+          +
         </button>
         <input type="text" value={text} onInput={(e) => {
           setText(e.target.value)
@@ -55,10 +58,8 @@ const TodoList = () => {
   const [text, setText] = useState("");
 
   const addTodo = () => {
-    if (text.trim() !== "") {
-      setTodos([...todos, { text: text, completed: false, id: Math.random() }]);
-      setText("");
-    }
+    setTodos([...todos, { text: text, completed: false, id: Math.random() }]);
+    setText("");
   };
 
   const onEnter = (e: KeyboardEvent) => {

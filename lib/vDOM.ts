@@ -5,6 +5,7 @@ type VNode = VElement | string | number
 let oldRoot: VElement
 let rootBuilder: componentType
 let rootElement: HTMLElement
+// use gloabl componentIndex and hookIndex to send info to the hooks
 let componentIndex = ""
 let hookIndex = 0
 export function getHookIndex() {
@@ -24,17 +25,26 @@ class VElement {
   tag: string
   props: propType
   children: VNode[]
+  componentIndex: string
 
-  constructor(tag: string, props: propType, children: VNode[]) {
+  constructor(
+    tag: string,
+    props: propType,
+    children: VNode[],
+    componentIndex: string
+  ) {
     this.tag = tag
     this.props = props
     this.children = children
+    this.componentIndex = componentIndex
   }
 }
 
 type propType = {[key: string]: any; key?: string} | null
-type componentType = (React?: string) => VElement
+type componentType = (defaultKey?: string) => VElement
 
+// IMPORTANT
+// primative children such as string and number inherit the componentIndex of the parent
 export function createElement<T extends propType>(
   type: string | ((props: T) => componentType),
   props: T,
@@ -44,7 +54,7 @@ export function createElement<T extends propType>(
     | number
     | (string | number | componentType)[]
   )[]
-): (React?: string) => VElement {
+): componentType {
   // get the key for the component
   let Index = ""
   if (typeof type === "function") {
@@ -63,7 +73,7 @@ export function createElement<T extends propType>(
       hookIndex = 0
       return type(props)(defaultKey)
     }
-    const element = new VElement(type, props ?? {}, [])
+    const element = new VElement(type, props ?? {}, [], componentIndex)
     for (const child of children) {
       if (typeof child === "function") {
         element.children.push(child(defaultKey))
@@ -200,7 +210,9 @@ function diffAndPatch(
 ) {
   // remove
   if (newVNode == undefined) {
-    unmount(componentIndex)
+    if (oldVNode instanceof VElement) {
+      unmount(oldVNode.componentIndex)
+    }
     parent.removeChild(element)
     return
   }
@@ -211,13 +223,14 @@ function diffAndPatch(
   }
   // swap
   if (typeof oldVNode != typeof newVNode) {
-    unmount(componentIndex)
+    if (oldVNode instanceof VElement) {
+      unmount(oldVNode.componentIndex)
+    }
     parent.replaceChild(createNode(newVNode), element)
     return
   }
   if (typeof oldVNode == "string" || typeof oldVNode == "number") {
     if (oldVNode !== newVNode) {
-      unmount(componentIndex)
       parent.replaceChild(createNode(newVNode), element)
     }
     return

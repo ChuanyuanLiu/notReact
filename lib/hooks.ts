@@ -35,7 +35,6 @@ export function useState<T>(
   ]
 }
 
-// react.useEffect(() => {}, [])
 // useEffect
 type cleanupFnType = () => void
 const depsCaches = new Map<string, any[][]>()
@@ -43,7 +42,6 @@ const cleanupCaches = new Map<string, (cleanupFnType | void)[]>()
 
 // execute all the cleanup functions for a component
 export function unmount(componentIndex: string) {
-  console.log("unmount", componentIndex)
   const cleanupFns = cleanupCaches.get(componentIndex)
   if (cleanupFns == undefined) {
     return
