@@ -1,16 +1,17 @@
-type VNode = VElement | string | number;
+type VNode = VElement | string | number | null | undefined | object | boolean;
 declare class VElement {
     tag: string;
     props: propType;
     children: VNode[];
-    constructor(tag: string, props: propType, children: VNode[]);
+    componentIndex: string;
+    constructor(tag: string, props: propType, children: VNode[], componentIndex: string);
 }
 type propType = {
     [key: string]: any;
     key?: string;
 } | null;
-type componentType = (React?: string) => VElement;
-declare function createElement<T extends propType>(type: string | ((props: T) => componentType), props: T, ...children: (componentType | string | number | (string | number | componentType)[])[]): (React?: string) => VElement;
+type componentType = (defaultKey?: string) => VElement;
+declare function createElement<T extends propType>(type: string | ((props: T) => componentType), props: T, ...children: (componentType | string | number | (string | number | componentType)[])[]): componentType;
 declare function createRoot(element: HTMLElement): {
     render: (builder: componentType) => void;
 };

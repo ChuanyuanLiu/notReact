@@ -1,12 +1,12 @@
 import React from "../lib/react"
 import "./styles.css"
 
-import TodoList from "./TodoList.tsx";
+import Reddit from "./reddit";
 
 export default function App() {
   return (
     <div className="bg-base-100 min-h-screen">
-      <TodoList />
+      <Reddit />
     </div>
   );
 }

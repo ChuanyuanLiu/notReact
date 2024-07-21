@@ -57,7 +57,8 @@ export function unmount(componentIndex: string) {
 export function useEffect(fn: () => void | cleanupFnType, deps?: any[]): void {
   const currentHookIndex = getHookIndex()
   setHookIndex(currentHookIndex + 1)
-  const depsCache = depsCaches.get(getComponentIndex())
+  const currentComponentIndex = getComponentIndex()
+  const depsCache = depsCaches.get(currentComponentIndex)
   // check if deps changed or it is an initial render
   if (
     depsCache != undefined &&
@@ -67,22 +68,22 @@ export function useEffect(fn: () => void | cleanupFnType, deps?: any[]): void {
     return
   }
   // setup for inital render
-  if (cleanupCaches.get(getComponentIndex()) == undefined) {
-    cleanupCaches.set(getComponentIndex(), [])
+  if (cleanupCaches.get(currentComponentIndex) == undefined) {
+    cleanupCaches.set(currentComponentIndex, [])
   }
   if (depsCache == undefined) {
-    depsCaches.set(getComponentIndex(), [])
+    depsCaches.set(currentComponentIndex, [])
   }
-  // cleanup
-  const cleanupCache = cleanupCaches.get(getComponentIndex())![currentHookIndex]
-  if (cleanupCache != undefined) {
-    cleanupCache()
+  if (deps != undefined) {
+    depsCaches.get(currentComponentIndex)![currentHookIndex] = deps
+  }
+  // run cleanup function
+  const oldCleanup = cleanupCaches.get(currentComponentIndex)![currentHookIndex]
+  if (oldCleanup != undefined) {
+    oldCleanup()
   }
   // run useEffect
   const cleanup = fn()
   // store cleanup function
-  cleanupCaches.get(getComponentIndex())![currentHookIndex] = cleanup
-  if (deps != undefined) {
-    depsCaches.get(getComponentIndex())![currentHookIndex] = deps
-  }
+  cleanupCaches.get(currentComponentIndex)![currentHookIndex] = cleanup
 }

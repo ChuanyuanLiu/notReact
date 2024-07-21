@@ -60,7 +60,6 @@ var React = (function (exports) {
     const cleanupCaches = new Map();
     // execute all the cleanup functions for a component
     function unmount(componentIndex) {
-        console.log("unmount", componentIndex);
         const cleanupFns = cleanupCaches.get(componentIndex);
         if (cleanupFns == undefined) {
             return;
@@ -75,7 +74,8 @@ var React = (function (exports) {
     function useEffect(fn, deps) {
         const currentHookIndex = getHookIndex();
         setHookIndex(currentHookIndex + 1);
-        const depsCache = depsCaches.get(getComponentIndex());
+        const currentComponentIndex = getComponentIndex();
+        const depsCache = depsCaches.get(currentComponentIndex);
         // check if deps changed or it is an initial render
         if (depsCache != undefined &&
             deps != undefined &&
@@ -83,29 +83,30 @@ var React = (function (exports) {
             return;
         }
         // setup for inital render
-        if (cleanupCaches.get(getComponentIndex()) == undefined) {
-            cleanupCaches.set(getComponentIndex(), []);
+        if (cleanupCaches.get(currentComponentIndex) == undefined) {
+            cleanupCaches.set(currentComponentIndex, []);
         }
         if (depsCache == undefined) {
-            depsCaches.set(getComponentIndex(), []);
+            depsCaches.set(currentComponentIndex, []);
         }
-        // cleanup
-        const cleanupCache = cleanupCaches.get(getComponentIndex())[currentHookIndex];
-        if (cleanupCache != undefined) {
-            cleanupCache();
+        if (deps != undefined) {
+            depsCaches.get(currentComponentIndex)[currentHookIndex] = deps;
+        }
+        // run cleanup function
+        const oldCleanup = cleanupCaches.get(currentComponentIndex)[currentHookIndex];
+        if (oldCleanup != undefined) {
+            oldCleanup();
         }
         // run useEffect
         const cleanup = fn();
         // store cleanup function
-        cleanupCaches.get(getComponentIndex())[currentHookIndex] = cleanup;
-        if (deps != undefined) {
-            depsCaches.get(getComponentIndex())[currentHookIndex] = deps;
-        }
+        cleanupCaches.get(currentComponentIndex)[currentHookIndex] = cleanup;
     }
 
     let oldRoot;
     let rootBuilder;
     let rootElement;
+    // use gloabl componentIndex and hookIndex to send info to the hooks
     let componentIndex = "";
     let hookIndex = 0;
     function getHookIndex() {
@@ -118,12 +119,15 @@ var React = (function (exports) {
         return componentIndex;
     }
     class VElement {
-        constructor(tag, props, children) {
+        constructor(tag, props, children, componentIndex) {
             this.tag = tag;
             this.props = props;
             this.children = children;
+            this.componentIndex = componentIndex;
         }
     }
+    // IMPORTANT
+    // primative children such as string and number inherit the componentIndex of the parent
     function createElement(type, props, ...children) {
         // get the key for the component
         let Index = "";
@@ -143,7 +147,7 @@ var React = (function (exports) {
                 hookIndex = 0;
                 return type(props)(defaultKey);
             }
-            const element = new VElement(type, props !== null && props !== void 0 ? props : {}, []);
+            const element = new VElement(type, props !== null && props !== void 0 ? props : {}, [], defaultKey);
             for (const child of children) {
                 if (typeof child === "function") {
                     element.children.push(child(defaultKey));
@@ -218,7 +222,7 @@ var React = (function (exports) {
     // mutate element inplace
     function updateElement(element, newProps, oldProps) {
         // add and update props
-        if (!(newProps == null)) {
+        if (!(newProps === null)) {
             Object.entries(newProps).forEach(([key, value]) => {
                 if (oldProps && oldProps[key] !== value) {
                     editProp("remove", element, key, oldProps[key]);
@@ -227,9 +231,9 @@ var React = (function (exports) {
             });
         }
         // remove props
-        if (!(oldProps == null)) {
+        if (!(oldProps === null)) {
             Object.keys(oldProps).forEach((key) => {
-                if (newProps && newProps[key] == undefined) {
+                if (newProps && newProps[key] === undefined) {
                     editProp("remove", element, key, oldProps[key]);
                 }
             });
@@ -238,6 +242,9 @@ var React = (function (exports) {
     function createNode(vnode) {
         // base case of text and numbers
         if (!(vnode instanceof VElement)) {
+            if (vnode === undefined || vnode === null || vnode === false) {
+                return document.createTextNode("");
+            }
             return document.createTextNode(vnode.toString());
         }
         // create element
@@ -250,45 +257,44 @@ var React = (function (exports) {
         }
         // render children
         children.forEach((child) => {
-            // extra type check if user forces an undefined child
-            if (child == undefined) {
-                return;
-            }
             element.appendChild(createNode(child));
         });
         return element;
     }
     function diffAndPatch(parent, element, newVNode, oldVNode) {
         // remove
-        if (newVNode == undefined) {
-            unmount(componentIndex);
+        if (newVNode === undefined) {
+            if (oldVNode === undefined) {
+                return;
+            }
+            if (oldVNode instanceof VElement) {
+                unmount(oldVNode.componentIndex);
+            }
             parent.removeChild(element);
             return;
         }
         // add
-        if (oldVNode == undefined) {
+        if (oldVNode === undefined) {
             parent.appendChild(createNode(newVNode));
             return;
         }
         // swap
         if (typeof oldVNode != typeof newVNode) {
-            unmount(componentIndex);
+            if (oldVNode instanceof VElement) {
+                unmount(oldVNode.componentIndex);
+            }
             parent.replaceChild(createNode(newVNode), element);
             return;
         }
-        if (typeof oldVNode == "string" || typeof oldVNode == "number") {
+        else if (!(oldVNode instanceof VElement) ||
+            !(newVNode instanceof VElement)) {
             if (oldVNode !== newVNode) {
-                unmount(componentIndex);
                 parent.replaceChild(createNode(newVNode), element);
             }
             return;
         }
         // update
         // compare vitual dom elements and render if props are different
-        newVNode = newVNode;
-        if (element.nodeType !== Node.ELEMENT_NODE) {
-            console.error("critical error", element);
-        }
         updateElement(element, newVNode.props, oldVNode.props);
         // recursively diff children
         const maxLength = Math.max(oldVNode.children.length, newVNode.children.length);

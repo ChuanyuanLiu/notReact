@@ -1,7 +1,6 @@
 import {genIDOnCallLocation} from "./utils"
 import {unmount} from "./hooks"
-
-type VNode = VElement | string | number
+type VNode = VElement | string | number | null | undefined | object | boolean
 let oldRoot: VElement
 let rootBuilder: componentType
 let rootElement: HTMLElement
@@ -73,7 +72,7 @@ export function createElement<T extends propType>(
       hookIndex = 0
       return type(props)(defaultKey)
     }
-    const element = new VElement(type, props ?? {}, [], componentIndex)
+    const element = new VElement(type, props ?? {}, [], defaultKey)
     for (const child of children) {
       if (typeof child === "function") {
         element.children.push(child(defaultKey))
@@ -156,7 +155,7 @@ function updateElement(
   oldProps: propType
 ) {
   // add and update props
-  if (!(newProps == null)) {
+  if (!(newProps === null)) {
     Object.entries(newProps).forEach(([key, value]) => {
       if (oldProps && oldProps[key] !== value) {
         editProp("remove", element, key, oldProps[key])
@@ -165,9 +164,9 @@ function updateElement(
     })
   }
   // remove props
-  if (!(oldProps == null)) {
+  if (!(oldProps === null)) {
     Object.keys(oldProps).forEach((key) => {
-      if (newProps && newProps[key] == undefined) {
+      if (newProps && newProps[key] === undefined) {
         editProp("remove", element, key, oldProps[key])
       }
     })
@@ -177,6 +176,9 @@ function updateElement(
 function createNode(vnode: VNode) {
   // base case of text and numbers
   if (!(vnode instanceof VElement)) {
+    if (vnode === undefined || vnode === null || vnode === false) {
+      return document.createTextNode("")
+    }
     return document.createTextNode(vnode.toString())
   }
 
@@ -192,10 +194,6 @@ function createNode(vnode: VNode) {
 
   // render children
   children.forEach((child) => {
-    // extra type check if user forces an undefined child
-    if (child == undefined) {
-      return
-    }
     element.appendChild(createNode(child))
   })
 
@@ -209,7 +207,10 @@ function diffAndPatch(
   oldVNode: VNode
 ) {
   // remove
-  if (newVNode == undefined) {
+  if (newVNode === undefined) {
+    if (oldVNode === undefined) {
+      return
+    }
     if (oldVNode instanceof VElement) {
       unmount(oldVNode.componentIndex)
     }
@@ -217,7 +218,7 @@ function diffAndPatch(
     return
   }
   // add
-  if (oldVNode == undefined) {
+  if (oldVNode === undefined) {
     parent.appendChild(createNode(newVNode))
     return
   }
@@ -228,8 +229,10 @@ function diffAndPatch(
     }
     parent.replaceChild(createNode(newVNode), element)
     return
-  }
-  if (typeof oldVNode == "string" || typeof oldVNode == "number") {
+  } else if (
+    !(oldVNode instanceof VElement) ||
+    !(newVNode instanceof VElement)
+  ) {
     if (oldVNode !== newVNode) {
       parent.replaceChild(createNode(newVNode), element)
     }
@@ -238,10 +241,6 @@ function diffAndPatch(
 
   // update
   // compare vitual dom elements and render if props are different
-  newVNode = newVNode as VElement
-  if (element.nodeType !== Node.ELEMENT_NODE) {
-    console.error("critical error", element)
-  }
   updateElement(element as HTMLElement, newVNode.props, oldVNode.props)
 
   // recursively diff children
