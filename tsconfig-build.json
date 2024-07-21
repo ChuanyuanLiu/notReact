@@ -6,7 +6,8 @@
     "declaration": true,
     "declarationDir": "dist",
     "strict": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["lib/react.ts"]
 }

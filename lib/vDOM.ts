@@ -32,7 +32,7 @@ class VElement {
   }
 }
 
-type propType = {[key: string]: any} | null
+type propType = {[key: string]: any; key?: string} | null
 type componentType = (React?: string) => VElement
 
 export function createElement<T extends propType>(

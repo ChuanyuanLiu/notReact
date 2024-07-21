@@ -25,7 +25,98 @@ var React = (function (exports) {
         }
     }
 
-    // the power of react, calculate diff and update only the necessary parts of the DOM
+    // useState
+    // TODO: improve type hints
+    let vals = new Map();
+    function useState(initial) {
+        if (vals.get(getComponentIndex()) == undefined) {
+            vals.set(getComponentIndex(), []);
+        }
+        const hooks = vals.get(getComponentIndex());
+        const currentHookIndex = getHookIndex();
+        setHookIndex(currentHookIndex + 1);
+        if (hooks[currentHookIndex] === undefined) {
+            if (typeof initial == "function") {
+                hooks[currentHookIndex] = initial();
+            }
+            else {
+                hooks[currentHookIndex] = initial;
+            }
+        }
+        return [
+            hooks[currentHookIndex],
+            (newVal) => {
+                if (typeof newVal === "function") {
+                    hooks[currentHookIndex] = newVal(hooks[currentHookIndex]);
+                }
+                else {
+                    hooks[currentHookIndex] = newVal;
+                }
+                rerender();
+            },
+        ];
+    }
+    const depsCaches = new Map();
+    const cleanupCaches = new Map();
+    // execute all the cleanup functions for a component
+    function unmount(componentIndex) {
+        console.log("unmount", componentIndex);
+        const cleanupFns = cleanupCaches.get(componentIndex);
+        if (cleanupFns == undefined) {
+            return;
+        }
+        for (const cleanup of cleanupFns) {
+            if (cleanup != undefined) {
+                cleanup();
+            }
+        }
+        cleanupCaches.delete(componentIndex);
+    }
+    function useEffect(fn, deps) {
+        const currentHookIndex = getHookIndex();
+        setHookIndex(currentHookIndex + 1);
+        const depsCache = depsCaches.get(getComponentIndex());
+        // check if deps changed or it is an initial render
+        if (depsCache != undefined &&
+            deps != undefined &&
+            deps.every((dep, i) => { var _a; return dep === ((_a = depsCache[currentHookIndex]) === null || _a === void 0 ? void 0 : _a[i]); })) {
+            return;
+        }
+        // setup for inital render
+        if (cleanupCaches.get(getComponentIndex()) == undefined) {
+            cleanupCaches.set(getComponentIndex(), []);
+        }
+        if (depsCache == undefined) {
+            depsCaches.set(getComponentIndex(), []);
+        }
+        // cleanup
+        const cleanupCache = cleanupCaches.get(getComponentIndex())[currentHookIndex];
+        if (cleanupCache != undefined) {
+            cleanupCache();
+        }
+        // run useEffect
+        const cleanup = fn();
+        // store cleanup function
+        cleanupCaches.get(getComponentIndex())[currentHookIndex] = cleanup;
+        if (deps != undefined) {
+            depsCaches.get(getComponentIndex())[currentHookIndex] = deps;
+        }
+    }
+
+    let oldRoot;
+    let rootBuilder;
+    let rootElement;
+    let componentIndex = "";
+    let hookIndex = 0;
+    function getHookIndex() {
+        return hookIndex;
+    }
+    function setHookIndex(i) {
+        hookIndex = i;
+    }
+    function getComponentIndex() {
+        return componentIndex;
+    }
     class VElement {
         constructor(tag, props, children) {
             this.tag = tag;
@@ -82,7 +173,12 @@ var React = (function (exports) {
     function editProp(operation, element, key, value) {
         // handle event listeners
         if (key.startsWith("on") && typeof value === "function") {
-            const eventName = key.toLowerCase().substring(2);
+            let eventName = key.toLowerCase().substring(2);
+            switch (eventName) {
+                case "change":
+                    eventName = "input";
+                    break;
+            }
             if (operation === "add") {
                 element.addEventListener(eventName, value);
             }
@@ -102,8 +198,18 @@ var React = (function (exports) {
             return;
         }
         // handle other attributes
+        // TODO: handle more cases
         if (operation === "add") {
-            element.setAttribute(key, value);
+            switch (key) {
+                case "value":
+                    element.value = value;
+                    break;
+                case "checked":
+                    element.checked = value;
+                    break;
+                default:
+                    element.setAttribute(key, value);
+            }
         }
         else {
             element.removeAttribute(key);
@@ -155,6 +261,7 @@ var React = (function (exports) {
     function diffAndPatch(parent, element, newVNode, oldVNode) {
         // remove
         if (newVNode == undefined) {
+            unmount(componentIndex);
             parent.removeChild(element);
             return;
         }
@@ -165,11 +272,13 @@ var React = (function (exports) {
         }
         // swap
         if (typeof oldVNode != typeof newVNode) {
+            unmount(componentIndex);
             parent.replaceChild(createNode(newVNode), element);
             return;
         }
         if (typeof oldVNode == "string" || typeof oldVNode == "number") {
             if (oldVNode !== newVNode) {
+                unmount(componentIndex);
                 parent.replaceChild(createNode(newVNode), element);
             }
             return;
@@ -205,50 +314,13 @@ var React = (function (exports) {
             },
         };
     }
-    ////////////////////////////////////////////////////////////////////////////
-    ////////////////////// Hooks
-    // TODO: improve type hints
-    let vals = new Map();
-    let componentIndex = "";
-    let hookIndex = 0;
-    function useState(initial) {
-        if (vals.get(componentIndex) == undefined) {
-            vals.set(componentIndex, []);
-        }
-        const hooks = vals.get(componentIndex);
-        const currentHookIndex = hookIndex;
-        hookIndex += 1;
-        if (hooks[currentHookIndex] === undefined) {
-            if (typeof initial == "function") {
-                hooks[currentHookIndex] = initial();
-            }
-            else {
-                hooks[currentHookIndex] = initial;
-            }
-        }
-        return [
-            hooks[currentHookIndex],
-            (newVal) => {
-                if (typeof newVal === "function") {
-                    hooks[currentHookIndex] = newVal(hooks[currentHookIndex]);
-                }
-                else {
-                    hooks[currentHookIndex] = newVal;
-                }
-                rerender();
-            },
-        ];
-    }
-    ////////////////////////////////////////////////////////////////////////////
-    // Global variables
-    let oldRoot;
-    let rootBuilder;
-    let rootElement;
-    var react = { createElement, createRoot, useState };
+
+    var react = { createElement, createRoot, useState, useEffect };
 
     exports.createElement = createElement;
     exports.createRoot = createRoot;
     exports.default = react;
+    exports.useEffect = useEffect;
     exports.useState = useState;
 
     Object.defineProperty(exports, '__esModule', { value: true });

@@ -4,9 +4,9 @@ const TodoItem = ({ todo, index, toggleTodo, removeTodo }) => {
   const [count, setCount] = useState(0);
   const [text, setText] = useState("");
   useEffect(() => {
-    console.log("TodoItem mounted");
+    console.log("TodoItem mounted", count);
     return () => {
-      console.log("TodoItem unmounted");
+      console.log("TodoItem unmounted", count);
     };
   }, [count])
 
@@ -49,14 +49,14 @@ const TodoList = () => {
     };
   }, [])
 
-  const [todos, setTodos] = useState<{ text: string; completed: boolean }[]>(
+  const [todos, setTodos] = useState<{ text: string; completed: boolean, id: number }[]>(
     []
   );
   const [text, setText] = useState("");
 
   const addTodo = () => {
     if (text.trim() !== "") {
-      setTodos([...todos, { text: text, completed: false }]);
+      setTodos([...todos, { text: text, completed: false, id: Math.random() }]);
       setText("");
     }
   };
@@ -99,6 +99,7 @@ const TodoList = () => {
       <ul className="space-y-2">
         {todos.map((todo, index) => (
           <TodoItem
+            key={todo.id}
             todo={todo}
             index={index}
             toggleTodo={toggleTodo}
